@@ -1,14 +1,15 @@
-import 'package:flutter/cupertino.dart';
+import 'dart:io';
 
 class Contact {
-  Widget flutterlogo;
+  File? pic;
   String name;
   String contact;
   String email;
-  Contact({
-    required this.flutterlogo,
-    required this.name,
-    required this.contact,
-    required this.email,
-  });
+  bool ishidden;
+  Contact(
+      {this.pic,
+      required this.name,
+      required this.contact,
+      required this.email,
+      this.ishidden = false});
 }

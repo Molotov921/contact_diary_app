@@ -1,4 +1,5 @@
 import 'package:contact_diary_app/provider/add_data_provider.dart';
+import 'package:contact_diary_app/screen/hidden_contacts.dart';
 import 'package:contact_diary_app/screen/home_page.dart';
 import 'package:contact_diary_app/screen/view_contact_info.dart';
 import 'package:flutter/material.dart';
@@ -27,6 +28,7 @@ class MyApp extends StatelessWidget {
         routes: {
           '/': (context) => const HomePage(),
           'viewContact': (context) => const ViewContactInfo(),
+          "hidden_contacts": (context) => const HiddenContacts(),
         },
       ),
     );

@@ -1,9 +1,8 @@
-// ignore_for_file: no_leading_underscores_for_local_identifiers
-
 import 'package:contact_diary_app/provider/add_data_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:local_auth/local_auth.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -11,11 +10,28 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var addDataP = Provider.of<AddDataProvider>(context);
+    var addDataPFalse = Provider.of<AddDataProvider>(context, listen: false);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Home Page'),
         centerTitle: true,
         elevation: 18,
+        actions: [
+          IconButton(
+            onPressed: () async {
+              LocalAuthentication localAuth = LocalAuthentication();
+              if (await localAuth.canCheckBiometrics &&
+                  await localAuth.isDeviceSupported()) {
+                localAuth
+                    .authenticate(localizedReason: "Unlock Hidden Contacts")
+                    .then((value) {
+                  Navigator.pushNamed(context, "hidden_contacts");
+                });
+              }
+            },
+            icon: const Icon(Icons.lock_outline_rounded),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
@@ -33,7 +49,7 @@ class HomePage extends StatelessWidget {
               alignment: Alignment.center,
               color: Colors.black12,
               child: const Text(
-                'No Contact',
+                'No Contacts are here,\nPress + to add new',
                 style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
               ),
             )
@@ -64,7 +80,11 @@ class HomePage extends StatelessWidget {
                                               addDataP.deleteContact(e);
                                               Navigator.pop(context);
                                             },
-                                            child: const Text('Delete'),
+                                            child: const Text(
+                                              'Delete',
+                                              style:
+                                                  TextStyle(color: Colors.red),
+                                            ),
                                           ),
                                           OutlinedButton(
                                             onPressed: () {
@@ -92,12 +112,13 @@ class HomePage extends StatelessWidget {
                                     border: Border.all(
                                         width: 2, color: Colors.black54),
                                   ),
-                                  child: const CircleAvatar(
-                                    backgroundColor: Colors.black12,
-                                    child: FlutterLogo(
-                                      size: 50,
-                                    ),
-                                  ),
+                                  child: (e.pic != null)
+                                      ? CircleAvatar(
+                                          backgroundImage: FileImage(e.pic!),
+                                        )
+                                      : const CircleAvatar(
+                                          child: FlutterLogo(),
+                                        ),
                                 ),
                                 title: Text(
                                   e.name,
@@ -110,10 +131,17 @@ class HomePage extends StatelessWidget {
                                   mainAxisAlignment: MainAxisAlignment.end,
                                   children: [
                                     IconButton(
+                                      onPressed: () {
+                                        addDataPFalse.hideContactData(e);
+                                      },
+                                      icon: const Icon(
+                                          Icons.lock_outline_rounded),
+                                    ),
+                                    IconButton(
                                       onPressed: () async {
-                                        final Uri _url =
+                                        final Uri url =
                                             Uri.parse('tel:${e.contact}');
-                                        await launchUrl(_url);
+                                        await launchUrl(url);
                                       },
                                       icon: const Icon(
                                         Icons.call,
@@ -122,9 +150,9 @@ class HomePage extends StatelessWidget {
                                     ),
                                     IconButton(
                                       onPressed: () async {
-                                        final Uri _url =
+                                        final Uri url =
                                             Uri.parse('sms:${e.contact}');
-                                        await launchUrl(_url);
+                                        await launchUrl(url);
                                       },
                                       icon: const Icon(
                                         Icons.message_rounded,
@@ -172,7 +200,7 @@ class Alert extends StatelessWidget {
                   ),
                 ],
               );
-            } else if (addDataP.cs.currentStep == 2) {
+            } else if (addDataP.cs.currentStep == 3) {
               return Row(
                 children: [
                   FilledButton(
@@ -216,9 +244,71 @@ class Alert extends StatelessWidget {
             Step(
               state: (addDataP.cs.currentStep == 0)
                   ? StepState.editing
-                  : (addDataP.con_var.nameC.text.isEmpty)
-                      ? StepState.error
-                      : StepState.complete,
+                  : StepState.complete,
+              title: const Text('Profile Image'),
+              content: Row(
+                children: [
+                  Column(
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 80,
+                            height: 80,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                width: 2,
+                                color: Colors.black54,
+                              ),
+                            ),
+                            child: (addDataP.pickImage != null)
+                                ? CircleAvatar(
+                                    radius: 40,
+                                    backgroundImage:
+                                        FileImage(addDataP.pickImage!),
+                                  )
+                                : const CircleAvatar(
+                                    radius: 40,
+                                    child: FlutterLogo(),
+                                  ),
+                          ),
+                          const SizedBox(width: 10),
+                          Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              FloatingActionButton(
+                                mini: true,
+                                onPressed: () {
+                                  addDataP.imagePicCamera();
+                                },
+                                child: const Icon(Icons.camera),
+                              ),
+                              const SizedBox(height: 10),
+                              FloatingActionButton(
+                                mini: true,
+                                onPressed: () {
+                                  addDataP.imagePicGalary();
+                                },
+                                child: const Icon(Icons.photo),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Step(
+              state: (addDataP.cs.currentStep < 1)
+                  ? StepState.indexed
+                  : (addDataP.cs.currentStep == 1)
+                      ? StepState.editing
+                      : (addDataP.con_var.nameC.text.isEmpty)
+                          ? StepState.error
+                          : StepState.complete,
               title: const Text('Name'),
               content: TextField(
                 controller: addDataP.con_var.nameC,
@@ -226,9 +316,9 @@ class Alert extends StatelessWidget {
               ),
             ),
             Step(
-              state: (addDataP.cs.currentStep < 1)
+              state: (addDataP.cs.currentStep < 2)
                   ? StepState.indexed
-                  : (addDataP.cs.currentStep == 1)
+                  : (addDataP.cs.currentStep == 2)
                       ? StepState.editing
                       : (addDataP.con_var.emailC.text.isEmpty)
                           ? StepState.error
@@ -240,16 +330,21 @@ class Alert extends StatelessWidget {
               ),
             ),
             Step(
-              state: (addDataP.cs.currentStep < 2)
+              state: (addDataP.cs.currentStep < 3)
                   ? StepState.indexed
-                  : (addDataP.cs.currentStep == 2)
+                  : (addDataP.cs.currentStep == 3)
                       ? StepState.editing
                       : (addDataP.con_var.contactC.text.isEmpty)
                           ? StepState.error
                           : StepState.complete,
               title: const Text('Contact'),
               content: TextField(
+                onSubmitted: (val) {
+                  addDataP.con_var.contactC.text = val;
+                },
+                keyboardType: TextInputType.phone,
                 controller: addDataP.con_var.contactC,
+                maxLength: 10,
                 decoration:
                     const InputDecoration(hintText: 'Enter your Contact'),
               ),
